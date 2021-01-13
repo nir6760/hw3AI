@@ -5,6 +5,8 @@ import math
 import numpy as np
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
+import argparse
+
 
 class Tree:
 
@@ -39,6 +41,22 @@ class ID3:
                 cnt_true_positive += 1
         return cnt_true_positive / size_X
 
+    # test ID3 and return the loss as it define in question 4, X- data:test
+    def predict_loss(self, X):
+        size_X = X.shape[0]
+        if size_X == 0:
+            raise Exception('There is no test, you can go home')
+        cnt_false_positive = 0
+        cnt_false_negative = 0
+        for index, row in X.iterrows():
+            true_diag = row['diagnosis']
+            if ID3.classify(row, self.tree) != true_diag:  # wrong classified
+                if true_diag == 'B':  # healty
+                    cnt_false_positive += 1
+                else:  # sick
+                    cnt_false_negative += 1
+        return (0.1 * cnt_false_positive + cnt_false_negative) / size_X
+
     # classify object
     @staticmethod
     def classify(object, tree):
@@ -51,8 +69,8 @@ class ID3:
         thres = tree.feature[1]
         # print('attribute ', attribute , ' - threshold ', thres)
 
-        going_to = 0
-        if object[attribute] >= thres:  # feature is 0
+        going_to = 0  # feature is 0
+        if object[attribute] >= thres:  # feature is 1
             going_to = 1
 
         # child[0] - val of feature, child[1] - subtree
@@ -131,7 +149,7 @@ class ID3:
             return Tree(None, None, Default)
         c = utilis.majority_class(E)
         if utilis.is_leave(E, F, c, M):
-            return Tree(None, None, c)
+            return Tree(None, None, c)  # todo: default or c , different approaches
         f = SelectFeature(F, E)
 
         # F.remove(f[0])
@@ -139,45 +157,71 @@ class ID3:
 
         subexamples0 = E[E[f[0]] < f[1]]
         subexamples1 = E[E[f[0]] >= f[1]]
-        child0 = [0, ID3.TDIDT(subexamples0, F, c, SelectFeature, M)]
-        child1 = [1, ID3.TDIDT(subexamples1, F, c, SelectFeature, M)]
+        child0 = (0, ID3.TDIDT(subexamples0, F, c, SelectFeature, M))
+        child1 = (1, ID3.TDIDT(subexamples1, F, c, SelectFeature, M))
         subtrees = [child0, child1]
         return Tree(f, subtrees, c)
 
-def experiment():
-    E_train, F = utilis.createDF_train()
-    M_lst = [1, 2, 3, 5, 8, 16, 30, 50, 80, 120]
-    it = 0
-    avg_lst = [0 for i in range(len(M_lst))]
+    # section 3.3 and 4.1 function
+    # To run this function you just have to call her in the main
+    # the parameter for section 3 (accuracy) is 3 and for section 4 (loss) is 4.
+    # you can add the flag ( -run_experiment param ) to terminal command and it will make the graph too.
+    # param should be 3 for section 3.4 or 4 for section 4.1
+    @staticmethod
+    def experiment(section=3):
+        E_train, F = utilis.createDF_train()
 
-    kf = KFold(n_splits=5, shuffle=True, random_state=123456789)  # todo: replace to 205467780
-    n_spilit = kf.get_n_splits()
-    for train_index, test_index in kf.split(E_train):
-        for it in range(len(M_lst)):
-            id3 = ID3()
-            id3.fitEarlyPruning(E_train.loc[train_index], F, M_lst[it])
-            avg_lst[it] += id3.predict(E_train.loc[test_index])/n_spilit
-    print(avg_lst)
+        if section != 3 and section != 4:
+            raise Exception('Wrong parameter')
 
-    plt.plot(M_lst, avg_lst)
+        M_lst = [1, 2, 3, 5, 8, 16, 30, 50, 80, 120]
+        avg_lst = [0 for i in range(len(M_lst))]
 
-    # naming the x axis
-    plt.xlabel('M values - axis')
-    # naming the y axis
-    plt.ylabel('avarge predication - axis')
-    plt.title('Section 3.3')
-    plt.show()
+        kf = KFold(n_splits=5, shuffle=True, random_state=123456789)  # todo: replace to 205467780
+        n_spilit = kf.get_n_splits()
+        for train_index, test_index in kf.split(E_train):
+            for it in range(len(M_lst)):
+                id3_alg = ID3()
+                id3_alg.fitEarlyPruning(E_train.loc[train_index], F, M_lst[it])
+                avg_lst[it] += id3_alg.predict(E_train.loc[test_index]) / n_spilit
 
+        print(avg_lst)
+        opt_index = avg_lst.index(max(avg_lst))
 
+        if section == 3:  # accuracy need to show graph
+            plt.plot(M_lst, avg_lst)
+            # naming the x axis
+            plt.xlabel('M values - axis')
+            # naming the y axis
+            plt.ylabel('average predication - axis')
+            plt.title('Section 3.3')
+            plt.show()
 
-
+        return M_lst[opt_index]
 
 
 if __name__ == '__main__':
-    experiment()
+    parser = argparse.ArgumentParser()
 
-    #E_train, F = utilis.createDF_train()
-    #E_test, F = utilis.createDF_test()
-    #id3 = ID3()
-    #id3.fit(E_train, F)
-    #print(id3.predict(E_test))
+    run_choices = [0, 3, 4]
+    parser.add_argument('-run_experiment', default=0, type=int,
+                        help='True to run experiment, else false (default: False)',
+                        choices=run_choices)
+    args = parser.parse_args()
+
+    E_train, F = utilis.createDF_train()
+    E_test, F = utilis.createDF_test()
+    id3 = ID3()
+    id3.fit(E_train, F)
+    print(id3.predict(E_test))
+
+    if args.run_experiment in [3, 4]:
+        opt_m = ID3.experiment(args.run_experiment)
+        id3 = ID3()
+        print('optimal m is ', opt_m)
+        id3.fitEarlyPruning(E_train, F, opt_m)
+        if args.run_experiment == 3:
+            print(id3.predict(E_test))
+        else:
+
+            print(id3.predict_loss(E_test))
