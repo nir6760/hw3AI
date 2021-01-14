@@ -1,4 +1,3 @@
-import ID3
 from ID3 import ID3 as ID3class
 import utilis
 from sklearn.model_selection import KFold

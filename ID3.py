@@ -37,7 +37,7 @@ class ID3:
             raise Exception('There is no test, you can go home')
         cnt_true_positive = 0
         for index, row in X.iterrows():
-            if ID3.classify(row, self.tree) == row['diagnosis']:
+            if self.classify(row, self.tree) == row['diagnosis']:
                 cnt_true_positive += 1
         return cnt_true_positive / size_X
 
