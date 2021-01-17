@@ -4,40 +4,53 @@ import random as rnd
 import numpy as np
 import argparse
 
-
 class KNNForest:
     def __init__(self):
         self.id3_lst = []
         self.centroid_lst = []
         self.N = 1
         self.K = 1
+        self.train_min = None
+        self.train_max = None
+        self.divide_by = None
 
     # train KNNForest , X- data:train, Y- features
-    def fit(self, E_train, F_train, p=0.5, N=1):
-        self.N = N
+    def fit(self, E_train, F_train, p_param=0.5, N_param=24):
+        self.N = N_param
         n = E_train.shape[0]
-        sub_sample_num = round(p * n)
+        sub_sample_num = round(p_param * n)
         choose_lst = range(n)
+        train_for_minmax = E_train.loc[:, E_train.columns != 'diagnosis']
+        self.train_min = train_for_minmax.min()
+        self.train_max = train_for_minmax.max()
+        divide_by = self.train_max - self.train_min
+        divide_by = divide_by.replace(0, 1)  # so we wont divide by zero
+        self.divide_by = divide_by
         for it in range(self.N):
-            sampling_indices = rnd.choices(choose_lst, k=sub_sample_num)
-            curr_train = E_train.loc[sampling_indices]
+            sampling_indices = rnd.choices(choose_lst, k=sub_sample_num)  # randomized samples from training set
+            curr_train = E_train.iloc[sampling_indices]
             id3_curr = ID3class()
             id3_curr.fit(curr_train, F_train)
             self.id3_lst.append(id3_curr)
             # calculate centroid
-            # curr_train = curr_train.loc[:, curr_train.columns != 'diagnosis']  # don't need it in the centroid
-            curr_centroid = self.calc_centroid(curr_train)
+            curr_centroid_not_minmax = self.calc_centroid(curr_train)
+            curr_centroid_minmax = self.minmax(curr_centroid_not_minmax)
             # append centroid
-            self.centroid_lst.append(curr_centroid)
+            self.centroid_lst.append(curr_centroid_minmax)
+
+    # minmax the centroid
+    def minmax(self, centroid_not_minmax):
+        minmax_centroid = (centroid_not_minmax - self.train_min) / self.divide_by
+        return minmax_centroid
 
     # test KNNForest and return the true_positive rate, X- data:test
-    def predict(self, X, k=1):
+    def predict(self, X, k_param=15):
         size_X = X.shape[0]
         if size_X == 0:
             raise Exception('There is no test, you can go home')
         cnt_true_positive = 0
         for index, row in X.iterrows():
-            if self.classify_by_k(row, k) == row['diagnosis']:
+            if self.classify_by_k(row, k_param) == row['diagnosis']:
                 cnt_true_positive += 1
         return cnt_true_positive / size_X
 
@@ -46,6 +59,7 @@ class KNNForest:
     def calc_centroid(df):
         df_relevant = df.loc[:, df.columns != 'diagnosis']  # we need only features
         centroid = df.mean()
+
         return centroid
 
     # calculate distance (Euclidean) between centroids
@@ -54,10 +68,10 @@ class KNNForest:
         dist = np.linalg.norm(centroid1 - centroid2)
         return dist
 
-    # classify sample by k closest trees (default k=1) and return
-    def classify_by_k(self, sample, k=1):
-        sample_to_cenroid = sample.drop(['diagnosis'])  # we need only features
-        self.K = k
+    # classify sample by k closest trees (default k=15) and return
+    def classify_by_k(self, sample, k_param=1):
+        sample_to_cenroid = self.minmax(sample.drop(['diagnosis']))  # we need only features
+        self.K = k_param
         distance_np = np.array([self.calc_distance(self.centroid_lst[it].to_numpy(), sample_to_cenroid.to_numpy())
                                 for it in range(self.N)])
 
@@ -79,11 +93,11 @@ class KNNForest:
 if __name__ == '__main__':
     # params are N- total number of decision tree, K - votes number , p - between [0.3,0.7]
     parser = argparse.ArgumentParser()
-    parser.add_argument('-N', default=10, type=int,
+    parser.add_argument('-N', default=24, type=int,
                         help='N is the numbers of trees in the conference , (not all of them are voting).'
                              'N is bigger than zero', )
 
-    parser.add_argument('-K', default=3, type=int,
+    parser.add_argument('-K', default=15, type=int,
                         help='K is the number of voting trees, K between 1 to N', )
     parser.add_argument('-p', default=0.5, type=float,
                         help='p is parameter between [0.3,0.7] for learning choice', )
@@ -96,8 +110,9 @@ if __name__ == '__main__':
     K = args.K
     p = args.p
     E_train, F = utilis.createDF_train()
-    E_test, F = utilis.createDF_test()
+    E_test, F_test = utilis.createDF_test()
 
     knn_forest = KNNForest()
     knn_forest.fit(E_train, F, p, N)
     print(knn_forest.predict(E_test, K))
+

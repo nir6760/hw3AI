@@ -1,6 +1,5 @@
 """utillis for every implementation.
 """
-import numpy as np
 import pandas as pd
 
 path_train = 'train.csv'
@@ -35,13 +34,14 @@ def majority_class(E):
 
 # find if there are no examples, or they all the same of if we need pruning
 # at continues space F won't be None because we don't remove features
-def is_leave(E, F, c, M=0):
-    if F is None or len(F) == 0:
-        return True
+def is_leave(E, F, curr_major, major_father,  M=0):
+    if F is None or len(F) == 0:  # affect only at discrete features
+        return True, major_father
 
+    if E.shape[0] < M:  # pruning by parameter M
+        return True, major_father
 
-    if E.shape[0] <= M:  # pruning by parameter M
-        return True
-    if E[E['diagnosis'] != c].shape[0] > 0:  # not all values are the same
-        return False
-    return True
+    if E[E['diagnosis'] == curr_major].shape[0] == E.shape[0]: # this is leave
+        return True, curr_major
+
+    return False, curr_major
