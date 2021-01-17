@@ -15,7 +15,7 @@ class KNNForest:
         self.divide_by = None
 
     # train KNNForest , X- data:train, Y- features
-    def fit(self, E_train, F_train, p_param=0.5, N_param=24):
+    def fit(self, E_train, F_train, p_param=0.3, N_param=15):
         self.N = N_param
         n = E_train.shape[0]
         sub_sample_num = round(p_param * n)
@@ -44,7 +44,7 @@ class KNNForest:
         return minmax_centroid
 
     # test KNNForest and return the true_positive rate, X- data:test
-    def predict(self, X, k_param=15):
+    def predict(self, X, k_param=9):
         size_X = X.shape[0]
         if size_X == 0:
             raise Exception('There is no test, you can go home')
@@ -93,13 +93,13 @@ class KNNForest:
 if __name__ == '__main__':
     # params are N- total number of decision tree, K - votes number , p - between [0.3,0.7]
     parser = argparse.ArgumentParser()
-    parser.add_argument('-N', default=24, type=int,
+    parser.add_argument('-N', default=15, type=int,
                         help='N is the numbers of trees in the conference , (not all of them are voting).'
                              'N is bigger than zero', )
 
-    parser.add_argument('-K', default=15, type=int,
+    parser.add_argument('-K', default=9, type=int,
                         help='K is the number of voting trees, K between 1 to N', )
-    parser.add_argument('-p', default=0.5, type=float,
+    parser.add_argument('-p', default=0.3, type=float,
                         help='p is parameter between [0.3,0.7] for learning choice', )
     args = parser.parse_args()
 
