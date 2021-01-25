@@ -2,7 +2,6 @@ from CostSensitiveID3 import CostSensitiveID3 as costSensitiveClass
 from ID3 import ID3 as ID3class
 import utilis
 import argparse
-import matplotlib.pyplot as plt
 import numpy as np
 
 # evaluate predict error (FN=1=FP)
@@ -29,19 +28,14 @@ class ImprovedKNNForest:
 
         my_knn_forest = KNNForest()
         my_knn_forest.fit(train, self.best_features, p_param, N_param)
+        #my_knn_forest.fit(E_train_best_with_diagnosis, self.best_features, p_param, N_param)
+
         for it in range(my_knn_forest.N):
             my_knn_forest.id3_lst[it].tree = \
                 costSensitiveClass.prune(my_knn_forest.id3_lst[it].tree, valid_group, evaluate_func=evaluatae_func)
 
         self.improved_forest = my_knn_forest
 
-    '''
-    # test ImprovedKNNForest and return the true_positive rate, X- data:test
-    def predict(self, X, k_param=15):
-        X = X.copy()
-        E_test_best_improved = X[self.best_features_with_diagnosis]
-        return self.improved_forest.predict(E_test_best_improved, k_param)
-    '''
 
     # test ImprovedKNNForest and return the true_positive rate, X- data:test
     def predict(self, X, k_param=15):
@@ -77,8 +71,8 @@ class ImprovedKNNForest:
         classify_func = lambda i: ID3class.classify(sample,
                                                     self.improved_forest.id3_lst[conference_indices_lst[i]].tree)
 
-        dec_by = int(self.improved_forest.K / 2)
-        votes_lst = [[classify_func(i)] * (dec_by - int(i /2)) for i in
+        dec_by = int(self.improved_forest.K / 3)
+        votes_lst = [[classify_func(i)] * (3 - int(i /2)) for i in
                      range(self.improved_forest.K)]
         votes_lst_flatt = [item for sublist in votes_lst for item in sublist]
 
@@ -126,11 +120,11 @@ if __name__ == '__main__':
     E_train, F = utilis.createDF_train()
     E_test, F_test = utilis.createDF_test()
 
-    knn_forest2 = ImprovedKNNForest()
-    knn_forest2.fit(E_train, F, evaluate_predict_err, p, N)
-    im = knn_forest2.predict(E_test, K)
-    print(im)
+    improved_knn_forest = ImprovedKNNForest()
+    improved_knn_forest.fit(E_train, F, evaluate_predict_err, p, N)
+    print(improved_knn_forest.predict(E_test, K))
 
+'''
     regular = []
     improved = []
 
@@ -160,4 +154,4 @@ if __name__ == '__main__':
     plt.title('Section 7')
     plt.legend()
     plt.show()
-
+'''

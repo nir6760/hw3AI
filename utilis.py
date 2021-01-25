@@ -41,7 +41,7 @@ def is_leave(E, F, curr_major, major_father,  M=0):
     if E.shape[0] < M:  # pruning by parameter M
         return True, major_father
 
-    if E[E['diagnosis'] == curr_major].shape[0] == E.shape[0]: # this is leave
+    if E[E['diagnosis'] == curr_major].shape[0] == E.shape[0]:  # this is leave
         return True, curr_major
 
     return False, curr_major

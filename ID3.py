@@ -152,11 +152,11 @@ class ID3:
         is_leave, def_val = utilis.is_leave(E, F, major_curr, major_father, M)
         if is_leave:
             return Tree(None, None, def_val)
-        #if utilis.is_leave(E, F, c, M):
-        #    return Tree(None, None, c)  # todo: default or c , different approaches
+        # if utilis.is_leave(E, F, c, M):
+        #    return Tree(None, None, c)
         f = SelectFeature(F, E)
 
-        # F.remove(f[0])# on discrete cases
+        # F.remove(f[0]) # on discrete cases
 
         subexamples0 = E[E[f[0]] < f[1]]
         subexamples1 = E[E[f[0]] >= f[1]]
@@ -183,18 +183,14 @@ class ID3:
         M_lst = [1, 2, 3, 5, 8, 16, 30, 50, 80, 120, 250, 340]
         avg_lst = [0 for i in range(len(M_lst))]
 
-        kf = KFold(n_splits=5, shuffle=True, random_state=205467780)  # todo: replace to 205467780
+        kf = KFold(n_splits=5, shuffle=True, random_state=205467780)
         n_split = kf.get_n_splits()
         for it in range(len(M_lst)):
             for train_index, test_index in kf.split(E_train):
                 id3_alg = ID3()
                 id3_alg.fitEarlyPruning(E_train.loc[train_index], F, M_lst[it])
                 avg_lst[it] += id3_alg.predict(E_train.loc[test_index]) / n_split
-            id3_currm = ID3()
-            id3_currm.fitEarlyPruning(E_train, F, M_lst[it])
-            #print('m: ', M_lst[it], 'real_predict(test): ', id3_currm.predict(E_test))
 
-        #print(avg_lst)
         opt_index = avg_lst.index(max(avg_lst))
 
         if section == 3:  # accuracy need to show graph
@@ -225,6 +221,7 @@ if __name__ == '__main__':
         id3 = ID3()
         id3.fit(E_train, F)
         print(id3.predict(E_test))
+
 
     if args.run_experiment in [3, 4]:
         opt_m = ID3.experiment(args.run_experiment)

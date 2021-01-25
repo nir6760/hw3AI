@@ -27,7 +27,7 @@ class KNNForest:
         divide_by = divide_by.replace(0, 1)  # so we wont divide by zero
         self.divide_by = divide_by
         for it in range(self.N):
-            sampling_indices = rnd.choices(choose_lst, k=sub_sample_num)  # randomized samples from training set
+            sampling_indices = rnd.sample(choose_lst, k=sub_sample_num)  # randomized samples from training set
             curr_train = E_train.iloc[sampling_indices]
             id3_curr = ID3class()
             id3_curr.fit(curr_train, F_train)
